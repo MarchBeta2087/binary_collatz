@@ -221,16 +221,81 @@ static int clz64(uint64_t x) {
     return n;
 }
 
+/* ---------- 预计算表：0-255 每个字节对应 8 个二进制字符（MSB 在前）---------- */
+static char BYTE_TO_BIN[256][8];
+static int byte_table_initialized = 0;
+
+static void init_byte_table(void) {
+    if (byte_table_initialized) return;
+    for (int i = 0; i < 256; i++) {
+        for (int b = 7; b >= 0; b--) {
+            BYTE_TO_BIN[i][7 - b] = (i >> b) & 1 ? '1' : '0';
+        }
+    }
+    byte_table_initialized = 1;
+}
+
+/* ---------- 优化后的 fprint_binary ---------- */
 void fprint_binary(FILE *fp, const BinaryBigint *bb) {
+    init_byte_table();
+
     uint64_t s = bb->start;
     uint64_t e = bb->end;
     if (s >= e) {
         fputc('0', fp);
         return;
     }
-    for (uint64_t i = e; i > s; ) {
-        i--;
-        fputc(get_bit(bb, i) ? '1' : '0', fp);
+
+    /* 建议：在 main 里对 fp 调用 setvbuf(fp, NULL, _IOFBF, 1<<20); 
+       这里如果 fp 是 stdout 且已重定向到文件，大块缓冲能进一步减少 sys 时间 */
+    char buf[8192];
+    size_t buf_pos = 0;
+
+    uint64_t first_word = s >> 6;
+    uint64_t first_bit  = s & 63;
+    uint64_t last_word  = (e - 1) >> 6;
+    uint64_t last_bit   = (e - 1) & 63;
+
+    /* ---- 处理最高位字（可能不是完整的 64 位）---- */
+    uint64_t w = bb->data[last_word];
+    if (last_bit != 63) {
+        w &= ((1ULL << (last_bit + 1)) - 1);  /* 屏蔽高位无效位 */
+    }
+
+    uint64_t stop = (last_word == first_word) ? first_bit : 0;
+    for (int64_t b = (int64_t)last_bit; b >= (int64_t)stop; b--) {
+        buf[buf_pos++] = ((w >> b) & 1) ? '1' : '0';
+    }
+
+    /* ---- 处理中间完整的字（从高位字到低位字）---- */
+    for (int64_t wi = (int64_t)last_word - 1; wi > (int64_t)first_word; wi--) {
+        w = bb->data[wi];
+        uint8_t *bytes = (uint8_t *)&w;
+
+        /* 小端机器：bytes[0] 是低字节，但我们要输出高字节在前。
+           因此从 bytes[7] 遍历到 bytes[0] */
+        for (int j = 7; j >= 0; j--) {
+            memcpy(buf + buf_pos, BYTE_TO_BIN[bytes[j]], 8);
+            buf_pos += 8;
+        }
+
+        if (buf_pos + 64 > sizeof(buf)) {
+            fwrite(buf, 1, buf_pos, fp);
+            buf_pos = 0;
+        }
+    }
+
+    /* ---- 处理最低位字（如果与最高位字不同）---- */
+    if (last_word > first_word) {
+        w = bb->data[first_word];
+        /* 从 bit 63 下降到 first_bit */
+        for (int64_t b = 63; b >= (int64_t)first_bit; b--) {
+            buf[buf_pos++] = ((w >> b) & 1) ? '1' : '0';
+        }
+    }
+
+    if (buf_pos > 0) {
+        fwrite(buf, 1, buf_pos, fp);
     }
 }
 
