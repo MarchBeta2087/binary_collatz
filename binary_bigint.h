@@ -8,6 +8,7 @@ binary_bigint.h
 
 */
 
+#include <stdio.h>
 #include <stdint.h>
 
 #ifndef BINARY_BIGINT_H
@@ -39,7 +40,9 @@ void step4_transform(const BinaryBigint* W, BinaryBigint* Y_new);
 
 char*         read_input(void);
 BinaryBigint* parse_binary_string(const char* str);
+void          fprint_binary(FILE *fp, const BinaryBigint *bb);
 void          print_binary(const BinaryBigint* bb);
+uint64_t      get_bit(const BinaryBigint* bb, uint64_t pos);
 
 #ifdef __cplusplus
 }
