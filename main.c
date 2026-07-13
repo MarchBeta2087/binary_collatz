@@ -54,6 +54,10 @@ int main(int argc, char *argv[]) {
         {0, 0, 0, 0}
     };
 
+    if (file_out) {
+        setvbuf(file_out, NULL, _IOFBF, 1 << 20);  /* 1MB 全缓冲 */
+    }
+
     int opt;
     while ((opt = getopt_long(argc, argv, "hvm:o:", long_opts, NULL)) != -1) {
         switch (opt) {
@@ -94,10 +98,6 @@ int main(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
         output_set_file(file_out);
-    }
-
-    if (file_out) {
-        setvbuf(file_out, NULL, _IOFBF, 1 << 20);  /* 1MB 全缓冲 */
     }
 
     /* ---------- 算法主流程（原逻辑，替换所有输出） ---------- */
