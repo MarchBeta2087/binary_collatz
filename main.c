@@ -54,6 +54,10 @@ int main(int argc, char *argv[]) {
         {0, 0, 0, 0}
     };
 
+    if (file_out) {
+        setvbuf(file_out, NULL, _IOFBF, 1 << 20);  /* 1MB 全缓冲 */
+    }
+
     int opt;
     while ((opt = getopt_long(argc, argv, "hvm:o:", long_opts, NULL)) != -1) {
         switch (opt) {
