@@ -21,6 +21,9 @@ extern "C" {
 /* 设置文件输出模式下的目标文件（默认 stdout） */
 void output_set_file(FILE *fp);
 
+/* 设置是否启用缩略模式 */
+void output_set_short(int enable);
+
 /*
  * 根据 mode 输出一条提示信息及紧跟的二进制数。
  * mode 取值："console", "silent", "file-output"
