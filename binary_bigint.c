@@ -15,7 +15,6 @@ binary_bigint.c
 #include <string.h>
 
 /* ---------------- 辅助函数声明 ---------------- */
-static inline uint64_t get_bit(const BinaryBigint* bb, uint64_t pos);
 static uint64_t mult3_add_carry(uint64_t word, uint64_t carry, uint64_t* new_carry);
 static int clz64(uint64_t x);
 
@@ -188,14 +187,15 @@ void step4_transform(const BinaryBigint* W, BinaryBigint* Y_new) {
     while (pos < end && get_bit(Y_new, pos) == 1) {
         pos++;
     }
-    /* 将最低的 0 改为 1 */
     Y_new->data[pos / 64] |= ((uint64_t)1 << (pos % 64));
-    /* 删除更低位 */
+    if (pos >= Y_new->end) {
+        Y_new->end = pos + 1;      // 原先为空时，end 需要更新
+    }
     Y_new->start = pos;
 }
 
 /* ---------------- 工具函数 ---------------- */
-static inline uint64_t get_bit(const BinaryBigint* bb, uint64_t pos) {
+uint64_t get_bit(const BinaryBigint* bb, uint64_t pos) {
     return (bb->data[pos / 64] >> (pos % 64)) & 1;
 }
 
@@ -221,18 +221,21 @@ static int clz64(uint64_t x) {
     return n;
 }
 
-void print_binary(const BinaryBigint* bb) {
+void fprint_binary(FILE *fp, const BinaryBigint *bb) {
     uint64_t s = bb->start;
     uint64_t e = bb->end;
     if (s >= e) {
-        putchar('0');
+        fputc('0', fp);
         return;
     }
-    uint64_t i;
-    for (i = e; i > s; ) {
+    for (uint64_t i = e; i > s; ) {
         i--;
-        putchar(get_bit(bb, i) ? '1' : '0');
+        fputc(get_bit(bb, i) ? '1' : '0', fp);
     }
+}
+
+void print_binary(const BinaryBigint *bb) {
+    fprint_binary(stdout, bb);    // 保持原有行为
 }
 
 char* read_input(void) {
