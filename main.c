@@ -13,10 +13,11 @@ main.c
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <inttypes.h>
 #include "binary_bigint.h"
 #include "output.h"
 
-#define ver "v0.3"
+#define ver "v0.4"
 #define year "2026"
 #define author "MarchBeta2087"
 #define license "MIT"
@@ -40,6 +41,7 @@ static void print_help(const char *prog) {
     printf("  --mode=file-output   File output mode (use -o to specify file)\n");
     printf("  --mode=console       Console mode (default)\n");
     printf("  -o <file>            Output file for file-output mode\n");
+    printf("  -a, --stat           Get statistics\n");
     printf("  -t, --time           Measure and display execution time inside the program\n");
     printf("  -s, --short          Shorten output of binaries >16 bits (shows first/last 8 bits)\n");
     printf("  -h, --help           Show this help\n");
@@ -62,6 +64,13 @@ int main(int argc, char *argv[]) {
     FILE *file_out = NULL;
     int measure_time = 0;             /* 是否测量运行时间 */
     int short_mode = 0;               /* 是否启用缩略模式 */
+    int statistics = 0;               /* 是否启用统计 */
+
+    uint64_t deleted_zeros = 0;       /* 第一步删除了多少个零 */
+    uint64_t iterated_steps = 0;      /* 迭代产生的步数 */
+    uint64_t iterations = 0;          /* 迭代轮数 */
+
+    int one_on_step_one = 1;
 
     static struct option long_opts[] = {
         {"mode",    required_argument, 0, 'm'},
@@ -69,11 +78,12 @@ int main(int argc, char *argv[]) {
         {"version", no_argument,       0, 'v'},
         {"time",    no_argument,       0, 't'},
         {"short",   no_argument,       0, 's'},
+        {"stat",    no_argument,       0, 'a'},
         {0, 0, 0, 0}
     };
 
-    int opt;
-    while ((opt = getopt_long(argc, argv, "hvm:o:ts", long_opts, NULL)) != -1) {
+    int opt, opt_idx;
+    while ((opt = getopt_long(argc, argv, "hvm:o:ats", long_opts, &opt_idx)) != -1) {
         switch (opt) {
         case 'm':
             if (strcmp(optarg, "silent") == 0 ||
@@ -87,6 +97,9 @@ int main(int argc, char *argv[]) {
             break;
         case 'o':
             out_filename = optarg;
+            break;
+        case 'a':
+            statistics = 1;
             break;
         case 't':
             measure_time = 1;
@@ -161,16 +174,19 @@ int main(int argc, char *argv[]) {
 
     process_binary("Initial X: ", Y, mode);          // 替代原来的 printf+print_binary
 
-    step1_remove_trailing_zeros(Y);
+    deleted_zeros = step1_remove_trailing_zeros(Y);
+    one_on_step_one = step1_is_1(Y);
     process_binary("Step1 Y: ", Y, mode);
 
     for (;;) {
+        iterations++;
+        output_message(mode, "\nIteration %" PRIu64 ":\n", iterations);
         BinaryBigint *Z = BinaryBigint_init();
-        step2_remove_trailing_01(Y, Z);
+        iterated_steps += step2_remove_trailing_01(Y, Z);
         process_binary("Step2 Z: ", Z, mode);
 
         BinaryBigint *W = BinaryBigint_init();
-        step3_mult3(Z, W);
+        iterated_steps += step3_mult3(Z, W);
         BinaryBigint_delete(Z);
         process_binary("Step3 W: ", W, mode);
 
@@ -181,7 +197,7 @@ int main(int argc, char *argv[]) {
         }
 
         BinaryBigint *Y_new = BinaryBigint_init();
-        step4_transform(W, Y_new);
+        iterated_steps += step4_transform(W, Y_new);
         BinaryBigint_delete(W);
         BinaryBigint_delete(Y);
         Y = Y_new;
@@ -195,6 +211,14 @@ int main(int argc, char *argv[]) {
         double elapsed = get_time_sec() - start_time;
         /* 输出至 stderr，避免干扰正常的重定向或文件输出内容 */
         fprintf(stderr, "\nInternal execution time: %.6f seconds\n", elapsed);
+    }
+
+    /* 输出迭代轮数 */
+    if (statistics) {
+        fprintf(stderr, "\nIterations: %" PRIu64 "\n", iterations);
+        uint64_t steps = deleted_zeros;
+        if (!one_on_step_one) {steps += iterated_steps + 2;}
+        fprintf(stderr, "\nSteps: %" PRIu64 "\n", steps);
     }
 
     if (file_out) fclose(file_out);

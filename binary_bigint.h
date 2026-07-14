@@ -32,11 +32,12 @@ void          BinaryBigint_expand(BinaryBigint* bb); // 扩容到原来的两倍
 void          BinaryBigint_homing(BinaryBigint* bb); // [start, end) 内数据覆盖到 [0, end-start)
 
 /* 算法步骤 */
-void step1_remove_trailing_zeros(BinaryBigint* Y);
-void step2_remove_trailing_01(const BinaryBigint* Y, BinaryBigint* Z);
-void step3_mult3(const BinaryBigint* Z, BinaryBigint* W);
-int  step4_is_11(const BinaryBigint* W);
-void step4_transform(const BinaryBigint* W, BinaryBigint* Y_new);
+uint64_t step1_remove_trailing_zeros(BinaryBigint* Y);
+int      step1_is_1(const BinaryBigint* Y);
+uint64_t step2_remove_trailing_01(const BinaryBigint* Y, BinaryBigint* Z);
+uint64_t step3_mult3(const BinaryBigint* Z, BinaryBigint* W);
+int      step4_is_11(const BinaryBigint* W);
+uint64_t step4_transform(const BinaryBigint* W, BinaryBigint* Y_new);
 
 char*         read_input(void);
 BinaryBigint* parse_binary_string(const char* str);

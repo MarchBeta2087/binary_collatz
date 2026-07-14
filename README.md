@@ -1,10 +1,14 @@
-# Binary Collatz v0.3
+# Binary Collatz v0.4
 
 Copyright (c) 2026 MarchBeta2087
 
 一个基于大整数位操作，演示 Collatz 过程的 C 语言程序，对给定的非零二进制串迭代执行删除尾零、删除尾随 "01" 模式、乘以 3 以及变换操作，直至结果变为 `11b`。
 
 ## 更新日志
+
+### [v0.4] - 2026-07-14
+- **新增特性**:
+  - 新增 `-a, --stat` 命令行参数，用于统计迭代轮数以及实际 Collatz 步数（到达 1 需要步数）。
 
 ### [v0.3] - 2026-07-13
 - **新增特性**：
@@ -68,6 +72,7 @@ Options:
   --mode=file-output   文件输出模式（必须使用 -o 选项指定输出路径）
   --mode=console       控制台输出模式（默认）
   -o <file>            指定文件输出模式下的保存路径
+  -a, --stat           获取统计数据
   -t, --time           在程序内部精确测量算法的运行时间（输出至标准错误流 stderr）
   -s, --short          缩略模式。当二进制串长度 >16 时，仅输出“首8位...末8位 (位数)”；长度 <=16 时原样输出
   -h, --help           显示此帮助信息
@@ -89,6 +94,11 @@ Options:
 3. **输出到文件并测量耗时**：
    ```bash
    cat large_input.txt | ./binary_collatz --mode=file-output -o result.txt -t -s
+   ```
+
+4. **获取统计数据**:
+   ```bash
+   cat large_input.txt | ./binary_collatz --mode=file-output -o result.txt -a -t -s
    ```
 
 ## 内部实现与性能优化
