@@ -123,26 +123,35 @@ void BinaryBigint_copy(const BinaryBigint* src, BinaryBigint* dst) {
 }
 
 /* ---------------- 算法步骤 ---------------- */
-void step1_remove_trailing_zeros(BinaryBigint* Y) {
+uint64_t step1_remove_trailing_zeros(BinaryBigint* Y) {
     uint64_t pos = Y->start;
     uint64_t end = Y->end;
+    uint64_t i = 0;
     while (pos < end && get_bit(Y, pos) == 0) {
-        pos++;
+        i++; pos++;
     }
     Y->start = pos;
+    return i; // 增加的步数，每删除一个 0 加一步
 }
 
-void step2_remove_trailing_01(const BinaryBigint* Y, BinaryBigint* Z) {
+int step1_is_1(const BinaryBigint* Y) {
+    if (Y->end - Y->start != 1) return 0;
+    return get_bit(Y, Y->start) == 1;
+}
+
+uint64_t step2_remove_trailing_01(const BinaryBigint* Y, BinaryBigint* Z) {
     BinaryBigint_copy(Y, Z);
     uint64_t pos = Z->start;
     uint64_t end = Z->end;
+    uint64_t i = 0;
     while (pos + 1 < end && get_bit(Z, pos) == 1 && get_bit(Z, pos + 1) == 0) {
-        pos += 2;
+        i += 2; pos += 2;
     }
     Z->start = pos;
+    return i; // 增加的步数，每删除一个 01 加两步
 }
 
-void step3_mult3(const BinaryBigint* Z, BinaryBigint* W) {
+uint64_t step3_mult3(const BinaryBigint* Z, BinaryBigint* W) {
     BinaryBigint* tmp = BinaryBigint_init();
     BinaryBigint_copy(Z, tmp);
     BinaryBigint_homing(tmp);   /* 确保 start = 0 */
@@ -173,6 +182,7 @@ void step3_mult3(const BinaryBigint* Z, BinaryBigint* W) {
     W->start = 0;
     BinaryBigint_delete(tmp);
     BinaryBigint_try_home_expand(W);
+    return 1; // 乘以 3 就是一步
 }
 
 int step4_is_11(const BinaryBigint* W) {
@@ -180,18 +190,20 @@ int step4_is_11(const BinaryBigint* W) {
     return (get_bit(W, W->start) == 1) && (get_bit(W, W->start + 1) == 1);
 }
 
-void step4_transform(const BinaryBigint* W, BinaryBigint* Y_new) {
+uint64_t step4_transform(const BinaryBigint* W, BinaryBigint* Y_new) {
     BinaryBigint_copy(W, Y_new);
     uint64_t pos = Y_new->start;
     uint64_t end = Y_new->end;
+    uint64_t i = 0;
     while (pos < end && get_bit(Y_new, pos) == 1) {
-        pos++;
+        i++; pos++;
     }
     Y_new->data[pos / 64] |= ((uint64_t)1 << (pos % 64));
     if (pos >= Y_new->end) {
         Y_new->end = pos + 1;      // 原先为空时，end 需要更新
     }
     Y_new->start = pos;
+    return i; // 增加的步数，每删除一个 1 加一步
 }
 
 /* ---------------- 工具函数 ---------------- */
