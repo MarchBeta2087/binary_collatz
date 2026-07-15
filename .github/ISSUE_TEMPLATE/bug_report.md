@@ -1,9 +1,9 @@
 ---
-name: Bug report
-about: Create a report to help us improve
-title: ''
-labels: ''
-assignees: ''
+- name: Bug report
+- about: Create a report to help us improve
+- title: ''
+- labels: ''
+- assignees: ''
 
 ---
 
@@ -37,8 +37,8 @@ The exact binary string (or file) that caused the issue.
 echo "..." | ./binary_collatz [flags]
 ```
 
-Expected behavior
+**Expected behavior**
 What should have happened?
 
-Screenshots or Logs
+**Screenshots or Logs**
 Paste the error output or stderr trace here.
