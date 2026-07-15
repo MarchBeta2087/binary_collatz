@@ -1,8 +1,17 @@
-name: Bug Report
-about: Report unexpected behavior or crashes
-title: "[BUG] "
-labels: bug
-assignees: MarchBeta2087
+---
+name: Bug report
+about: Create a report to help us improve
+title: ''
+labels: ''
+assignees: ''
+
+---
+
+- name: Bug Report
+- about: Report unexpected behavior or crashes
+- title: "[BUG] "
+- labels: bug
+- assignees: MarchBeta2087
 
 ---
 
@@ -33,4 +42,3 @@ What should have happened?
 
 Screenshots or Logs
 Paste the error output or stderr trace here.
-
