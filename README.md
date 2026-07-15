@@ -1,10 +1,14 @@
-# Binary Collatz v0.4
+# Binary Collatz v0.5
 
 Copyright (c) 2026 MarchBeta2087
 
 一个基于大整数位操作，演示 Collatz 过程的 C 语言程序，对给定的非零二进制串迭代执行删除尾零、删除尾随 "01" 模式、乘以 3 以及变换操作，直至结果变为 `11b`。
 
 ## 更新日志
+
+### [v0.5] - 2026-07-15
+- **新增特性**:
+  - 新增 `-B --benchmark` 命令行参数，用于性能测试。
 
 ### [v0.4] - 2026-07-14
 - **新增特性**:
@@ -57,12 +61,34 @@ Z000000b × 3 + (010101b × 3 + 1) = Z000000b × 3 + (111111b + 1) = Z000000b ×
 ### 编译
 
 ```bash
-gcc -std=c99 -O2 -o binary_collatz main.c binary_bigint.c output.c
+gcc -std=c99 -O3 -Wall -Wextra -s -o binary_collatz main.c binary_bigint.c output.c benchmark.c
 ```
 
 ### 使用
 
 程序支持从标准输入读取一个非零的二进制字符串（仅包含字符 0 和 1），并提供了丰富的命令行配置参数：
+
+```bash
+Usage: ./binary_collatz [OPTIONS]
+
+Options:
+  --mode=silent        Silent mode, no intermediate output
+  --mode=file-output   File output mode (use -o to specify file)
+  --mode=console       Console mode (default)
+  -o <file>            Output file for file-output mode
+  -a, --stat           Get statistics
+  -t, --time           Measure and display execution time inside the program
+  -s, --short          Shorten output of binaries >16 bits (shows first/last 8 bits)
+  -B, --benchmark      Run performance benchmark (silent mode, no normal output)
+      --low=<bits>     Minimum bits for benchmark (default: 10000)
+      --high=<bits>    Maximum bits for benchmark (default: 100000)
+      --step=<bits>    Step size in bits (default: 10000)
+      --samples=<n>    Samples per bit-length (default: 10)
+  -h, --help           Show this help
+  -v, --version        Show version
+```
+
+#### 各选项中文解释
 
 ```bash
 Usage: ./binary_collatz [OPTIONS]
@@ -74,7 +100,12 @@ Options:
   -o <file>            指定文件输出模式下的保存路径
   -a, --stat           获取统计数据
   -t, --time           在程序内部精确测量算法的运行时间（输出至标准错误流 stderr）
-  -s, --short          缩略模式。当二进制串长度 >16 时，仅输出“首8位...末8位 (位数)”；长度 <=16 时原样输出
+  -s, --short          缩略模式。当二进制串长度 >16 时，仅输出“首8位...末8位 (位数)”；长度 >
+  -B, --benchmark      运行性能测试（静默模式，无正常输出）
+      --low=<bits>     测试最小位数，默认 10000
+      --high=<bits>    测试最大位数，默认 100000
+      --step=<bits>    测试步进，默认 10000
+      --samples=<n>    每个位长度档位的样本数，默认 10
   -h, --help           显示此帮助信息
   -v, --version        显示版本号
 ```
@@ -99,6 +130,11 @@ Options:
 4. **获取统计数据**:
    ```bash
    cat large_input.txt | ./binary_collatz --mode=file-output -o result.txt -a -t -s
+   ```
+
+5. **测试性能**:
+   ```bash
+   ./binary_collatz -B
    ```
 
 ## 内部实现与性能优化

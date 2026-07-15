@@ -30,6 +30,11 @@ BinaryBigint* BinaryBigint_init(void) {
     return bb;
 }
 
+static int is_big_endian(void) {
+    uint32_t x = 1;
+    return (*(char*)&x == 0);
+}
+
 void BinaryBigint_delete(BinaryBigint* bb) {
     if (bb) {
         free(bb->data);
@@ -282,15 +287,22 @@ void fprint_binary(FILE *fp, const BinaryBigint *bb) {
     /* ---- 处理中间完整的字（从高位字到低位字）---- */
     for (int64_t wi = (int64_t)last_word - 1; wi > (int64_t)first_word; wi--) {
         w = bb->data[wi];
-        uint8_t *bytes = (uint8_t *)&w;
-
-        /* 小端机器：bytes[0] 是低字节，但我们要输出高字节在前。
-           因此从 bytes[7] 遍历到 bytes[0] */
-        for (int j = 7; j >= 0; j--) {
-            memcpy(buf + buf_pos, BYTE_TO_BIN[bytes[j]], 8);
-            buf_pos += 8;
+        static int big_endian = -1;
+        if (big_endian == -1) big_endian = is_big_endian();
+        uint8_t *bytes = (uint8_t *)&w;   // 将 uint64_t 看作 8 个字节
+        if (big_endian) {
+            // 大端：bytes[0] = MSB, bytes[7] = LSB，正序输出（0->7）
+            for (int j = 0; j < 8; j++) {
+                memcpy(buf + buf_pos, BYTE_TO_BIN[bytes[j]], 8);
+                buf_pos += 8;
+            }
+        } else {
+            // 小端：bytes[7] = MSB, bytes[0] = LSB，倒序输出（7->0）
+            for (int j = 7; j >= 0; j--) {
+                memcpy(buf + buf_pos, BYTE_TO_BIN[bytes[j]], 8);
+                buf_pos += 8;
+            }
         }
-
         if (buf_pos + 64 > sizeof(buf)) {
             fwrite(buf, 1, buf_pos, fp);
             buf_pos = 0;
