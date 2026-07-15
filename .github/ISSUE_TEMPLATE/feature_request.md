@@ -1,8 +1,17 @@
-name: Feature Request
+---
+name: Feature request
 about: Suggest an idea for this project
-title: "[FEAT] "
-labels: enhancement
-assignees: MarchBeta2087
+title: ''
+labels: ''
+assignees: ''
+
+---
+
+- name: Feature Request
+- about: Suggest an idea for this project
+- title: "[FEAT] "
+- labels: enhancement
+- assignees: MarchBeta2087
 
 ---
 
@@ -17,4 +26,3 @@ Any workarounds you've tried.
 
 **Additional context**
 Add any performance data, research papers, or mathematical background related to the Collatz variant here.
-
