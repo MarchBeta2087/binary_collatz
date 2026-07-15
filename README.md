@@ -64,6 +64,8 @@ Z000000b × 3 + (010101b × 3 + 1) = Z000000b × 3 + (111111b + 1) = Z000000b ×
 gcc -std=c99 -O3 -Wall -Wextra -s -o binary_collatz main.c binary_bigint.c output.c benchmark.c
 ```
 
+注意：如果在 Windows 使用 MinGW-w64 等 C 编译器编译，请添加 `-lbcrypt`。
+
 ### 使用
 
 程序支持从标准输入读取一个非零的二进制字符串（仅包含字符 0 和 1），并提供了丰富的命令行配置参数：
@@ -143,6 +145,11 @@ Options:
 - **指针延迟对齐（Soft Deletion）**：通过调整 `start` 和 `end` 指针避免不必要的数据物理搬移，仅在必要时触发 `homing` 对齐和扩容。
 - **高阶 I/O 缓冲**：在文件输出模式下，程序会自动为输出文件流绑定 1MB 的全缓冲区（`setvbuf`），避免高频次的物理写盘导致运行效率下降。
 - **高精度测时**：在 Unix/Linux/Android 下利用系统的单调时钟 `clock_gettime` 进行微秒级时间统计，且测时结果输出至 stderr，不干扰数据重定向。
+
+## 注意事项
+
+1. 注意：如果在 Windows 上使用 MinGW-w64 等 C 编译器编译，请添加 `-lbcrypt`。
+2. Windows 上的时间精度是 1 毫秒，这是由 Windows 操作系统上的 `CLOCKS_PER_SEC` 确定的，详见 [https://learn.microsoft.com/zh-cn/cpp/c-runtime-library/reference/clock?view=msvc-170](https://learn.microsoft.com/zh-cn/cpp/c-runtime-library/reference/clock?view=msvc-170)。
 
 ## 许可证
 
