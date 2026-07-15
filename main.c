@@ -8,6 +8,7 @@ main.c
 
 */
 
+/* main.c */
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,14 +17,14 @@ main.c
 #include <inttypes.h>
 #include "binary_bigint.h"
 #include "output.h"
+#include "benchmark.h"   /* 新增 */
 
-#define ver "v0.4"
+#define ver "v0.5"
 #define year "2026"
 #define author "MarchBeta2087"
 #define license "MIT"
 #define source_link "https://github.com/MarchBeta2087/binary_collatz"
 
-/* 高精度跨平台时间测量 */
 static double get_time_sec(void) {
 #if defined(__unix__) || defined(__APPLE__) || defined(__ANDROID__)
     struct timespec ts;
@@ -44,6 +45,12 @@ static void print_help(const char *prog) {
     printf("  -a, --stat           Get statistics\n");
     printf("  -t, --time           Measure and display execution time inside the program\n");
     printf("  -s, --short          Shorten output of binaries >16 bits (shows first/last 8 bits)\n");
+    /* 新增性能测试选项 */
+    printf("  -B, --benchmark      Run performance benchmark (silent mode, no normal output)\n");
+    printf("      --low=<bits>     Minimum bits for benchmark (default: 10000)\n");
+    printf("      --high=<bits>    Maximum bits for benchmark (default: 100000)\n");
+    printf("      --step=<bits>    Step size in bits (default: 10000)\n");
+    printf("      --samples=<n>    Samples per bit-length (default: 10)\n");
     printf("  -h, --help           Show this help\n");
     printf("  -v, --version        Show version\n");
 }
@@ -51,39 +58,48 @@ static void print_help(const char *prog) {
 static void print_version(void) {
     printf("Binary Collatz %s\n", ver);
     printf("Copyright (c) %s %s\n\n", year, author);
-    printf("This program is ");
-    printf("open sourced under ");
-    printf("the %s license, \n", license);
-    printf("and the source code ");
-    printf("can be obtained from: \n\n%s\n\n", source_link);
+    printf("This program is open sourced under the %s license,\n", license);
+    printf("and the source code can be obtained from:\n\n%s\n\n", source_link);
 }
 
 int main(int argc, char *argv[]) {
-    const char *mode = "console";     /* 默认模式 */
+    const char *mode = "console";
     const char *out_filename = NULL;
     FILE *file_out = NULL;
-    int measure_time = 0;             /* 是否测量运行时间 */
-    int short_mode = 0;               /* 是否启用缩略模式 */
-    int statistics = 0;               /* 是否启用统计 */
+    int measure_time = 0;
+    int short_mode = 0;
+    int statistics = 0;
 
-    uint64_t deleted_zeros = 0;       /* 第一步删除了多少个零 */
-    uint64_t iterated_steps = 0;      /* 迭代产生的步数 */
-    uint64_t iterations = 0;          /* 迭代轮数 */
+    /* 性能测试参数 */
+    int benchmark = 0;
+    uint64_t low = 10000;
+    uint64_t high = 100000;
+    uint64_t step = 10000;
+    uint64_t samples = 10;
+    const char *csv_file = NULL;   /* 若用户通过 -o 指定，则使用，否则默认 */
 
+    uint64_t deleted_zeros = 0;
+    uint64_t iterated_steps = 0;
+    uint64_t iterations = 0;
     int one_on_step_one = 1;
 
     static struct option long_opts[] = {
-        {"mode",    required_argument, 0, 'm'},
-        {"help",    no_argument,       0, 'h'},
-        {"version", no_argument,       0, 'v'},
-        {"time",    no_argument,       0, 't'},
-        {"short",   no_argument,       0, 's'},
-        {"stat",    no_argument,       0, 'a'},
+        {"mode",     required_argument, 0, 'm'},
+        {"help",     no_argument,       0, 'h'},
+        {"version",  no_argument,       0, 'v'},
+        {"time",     no_argument,       0, 't'},
+        {"short",    no_argument,       0, 's'},
+        {"stat",     no_argument,       0, 'a'},
+        {"benchmark", no_argument,      0, 'B'},
+        {"low",      required_argument, 0, 1},   /* 长选项专用 */
+        {"high",     required_argument, 0, 2},
+        {"step",     required_argument, 0, 3},
+        {"samples",  required_argument, 0, 4},
         {0, 0, 0, 0}
     };
 
     int opt, opt_idx;
-    while ((opt = getopt_long(argc, argv, "hvm:o:ats", long_opts, &opt_idx)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hvm:o:atsB", long_opts, &opt_idx)) != -1) {
         switch (opt) {
         case 'm':
             if (strcmp(optarg, "silent") == 0 ||
@@ -107,6 +123,21 @@ int main(int argc, char *argv[]) {
         case 's':
             short_mode = 1;
             break;
+        case 'B':
+            benchmark = 1;
+            break;
+        case 1:  /* --low */
+            low = (uint64_t)strtoull(optarg, NULL, 10);
+            break;
+        case 2:  /* --high */
+            high = (uint64_t)strtoull(optarg, NULL, 10);
+            break;
+        case 3:  /* --step */
+            step = (uint64_t)strtoull(optarg, NULL, 10);
+            break;
+        case 4:  /* --samples */
+            samples = (uint64_t)strtoull(optarg, NULL, 10);
+            break;
         case 'h':
             print_help(argv[0]);
             return EXIT_SUCCESS;
@@ -119,7 +150,15 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    /* 如果是文件输出模式，打开文件并设置 1MB 全缓冲 */
+    /* 若启用性能测试，则直接运行并退出（忽略其他模式） */
+    if (benchmark) {
+        /* 如果用户指定了 -o 用于 CSV 输出，则使用该文件名 */
+        if (out_filename) csv_file = out_filename;
+        benchmark_run(low, high, step, samples, csv_file);
+        return EXIT_SUCCESS;
+    }
+
+    /* 以下为原有正常流程 */
     if (strcmp(mode, "file-output") == 0) {
         if (!out_filename) {
             fprintf(stderr, "File output mode requires -o <file>\n");
@@ -130,16 +169,12 @@ int main(int argc, char *argv[]) {
             perror("fopen");
             return EXIT_FAILURE;
         }
-        setvbuf(file_out, NULL, _IOFBF, 1 << 20);  /* 修复：在此处成功打开文件后再进行缓冲设置 */
+        setvbuf(file_out, NULL, _IOFBF, 1 << 20);
         output_set_file(file_out);
     }
 
-    /* 启用缩略模式 */
-    if (short_mode) {
-        output_set_short(1);
-    }
+    if (short_mode) output_set_short(1);
 
-    /* ---------- 算法主流程（原逻辑，替换所有输出） ---------- */
     print_version();
     printf("Please enter a string containing only 0 and 1:\n\n");
     char *line = read_input();
@@ -148,32 +183,25 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    /* 开始测量时间（从输入解析后、核心算法启动前开始计时） */
     double start_time = 0.0;
-    if (measure_time) {
-        start_time = get_time_sec();
-    }
+    if (measure_time) start_time = get_time_sec();
 
     BinaryBigint *Y = parse_binary_string(line);
-    // ---------- 规范化：去除前导零 ----------
+    /* 去除前导零 */
     {
         uint64_t i = Y->end;
-        while (i > Y->start && get_bit(Y, i - 1) == 0) {
-            i--;
-        }
+        while (i > Y->start && get_bit(Y, i - 1) == 0) i--;
         if (i == Y->start) {
-            // 全零，直接退出
             BinaryBigint_delete(Y);
             free(line);
             if (file_out) fclose(file_out);
             return EXIT_FAILURE;
         }
-        Y->end = i;   // 截断高位多余的零
+        Y->end = i;
     }
     free(line);
 
-    process_binary("Initial X: ", Y, mode);          // 替代原来的 printf+print_binary
-
+    process_binary("Initial X: ", Y, mode);
     deleted_zeros = step1_remove_trailing_zeros(Y);
     one_on_step_one = step1_is_1(Y);
     process_binary("Step1 Y: ", Y, mode);
@@ -206,22 +234,18 @@ int main(int argc, char *argv[]) {
 
     BinaryBigint_delete(Y);
 
-    /* 停止计时并输出结果 */
     if (measure_time) {
         double elapsed = get_time_sec() - start_time;
-        /* 输出至 stderr，避免干扰正常的重定向或文件输出内容 */
         fprintf(stderr, "\nInternal execution time: %.6f seconds\n", elapsed);
     }
 
-    /* 输出迭代轮数 */
     if (statistics) {
         fprintf(stderr, "\nIterations: %" PRIu64 "\n", iterations);
         uint64_t steps = deleted_zeros;
-        if (!one_on_step_one) {steps += iterated_steps + 2;}
+        if (!one_on_step_one) steps += iterated_steps + 2;
         fprintf(stderr, "\nSteps: %" PRIu64 "\n", steps);
     }
 
     if (file_out) fclose(file_out);
     return EXIT_SUCCESS;
 }
-
