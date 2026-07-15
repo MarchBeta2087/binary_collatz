@@ -1,9 +1,9 @@
 ---
-- name: Bug report
-- about: Create a report to help us improve
-- title: ''
-- labels: ''
-- assignees: ''
+name: Bug Report
+about: Report unexpected behavior or crashes
+title: "[BUG]"
+labels: bug
+assignees: MarchBeta2087
 
 ---
 
